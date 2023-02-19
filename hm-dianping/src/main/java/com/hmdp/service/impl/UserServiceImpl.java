@@ -101,14 +101,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
          */
         String token = UUID.randomUUID().toString(true);
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
-
         Map<String, Object> map = BeanUtil.beanToMap(userDTO,new HashMap<>(),
             CopyOptions.create().setIgnoreNullValue(true).
             setFieldValueEditor((filedName , fieldValue) -> fieldValue.toString()));  //将对象转成map
 
         stringRedisTemplate.opsForHash().putAll(LOGIN_USER_KEY+token,map);
         //存储完成设置有效期 30 min
-        stringRedisTemplate.expire(LOGIN_USER_KEY + token, LOGIN_USER_TTL ,TimeUnit.MINUTES);
+        stringRedisTemplate.expire(LOGIN_USER_KEY + token, 30 ,TimeUnit.MINUTES);
         /**
          * 如果用户30分钟内一直进行访问的话，那么有效期就会不断的变化，所以我么就需要再拦截器中设置，一旦用户点击，就是有了请求
          * 那么就重置30分钟，一直往复的设值，那么就实现了用户30分钟不点点击就删除token的设置

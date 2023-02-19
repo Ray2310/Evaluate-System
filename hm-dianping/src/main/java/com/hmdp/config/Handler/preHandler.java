@@ -42,7 +42,7 @@ public class preHandler implements HandlerInterceptor {
         //4. 保存信息到ThreadLocal
         UserHolder.saveUser(userDTO);
         //刷新token有效期
-        stringRedisTemplate.expire(key,LOGIN_USER_TTL , TimeUnit.MINUTES);
+        stringRedisTemplate.expire(key,30 , TimeUnit.MINUTES);
         //放行
         return true;
     }

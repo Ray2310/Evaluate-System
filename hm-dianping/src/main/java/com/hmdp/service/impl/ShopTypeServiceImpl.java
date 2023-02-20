@@ -1,7 +1,6 @@
 package com.hmdp.service.impl;
 
 import cn.hutool.json.JSONUtil;
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.ShopType;
@@ -31,7 +30,6 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
             List<ShopType> typeList = new ArrayList<>();
             for (String s:shopTypeList) {
                 ShopType shopType = JSONUtil.toBean(s, ShopType.class);
-
                 typeList.add(shopType);
             }
             return Result.ok(typeList);

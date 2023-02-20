@@ -2,8 +2,7 @@ package com.hmdp.service.impl;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.hmdp.MyUtils.CacheClient;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
@@ -21,17 +20,22 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Resource
+    private CacheClient cacheClient;
+
     @Override
     public Result queryById(Long id) {
         // 方法一 ： 缓存穿透解决缓存击穿问题
-        System.out.println("1---------------");
         //Result shop = queryWithPassThrough(id);
         //方法二：  基于互斥锁方式解决缓存击穿问题
-        Result shop = queryWithMutex(id);
+        //Result shop = queryWithMutex(id);
         //方法三 ：逻辑过期设置缓存击穿问题
         //Result shop = queryWithLogicalExpire(id);
         // 3. 返回商户信息
-        System.out.println("2---------------");
+
+        //方法四 ：使用自定义的工具类 解决缓存穿透
+        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY, id, Shop.class, this::getById, CACHE_SHOP_TTL, TimeUnit.MINUTES);
+
         return Result.ok(shop);
     }
 

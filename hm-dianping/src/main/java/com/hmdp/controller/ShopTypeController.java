@@ -22,7 +22,7 @@ public class ShopTypeController {
     //todo 给店铺类型做缓存，实现类型的排序等
     public Result queryTypeList() {
 
-        return typeService.queryTypeList();
+       return typeService.queryTypeList();
 //
 //        List<ShopType> typeList = typeService
 //                .query().orderByAsc("sort").list();

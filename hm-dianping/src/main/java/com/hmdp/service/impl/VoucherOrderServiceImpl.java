@@ -1,14 +1,17 @@
 package com.hmdp.service.impl;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.SeckillVoucher;
+import com.hmdp.entity.User;
 import com.hmdp.entity.VoucherOrder;
 import com.hmdp.mapper.VoucherOrderMapper;
 import com.hmdp.service.ISeckillVoucherService;
 import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
+import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
 import org.springframework.aop.framework.AopContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +22,9 @@ import java.time.LocalDateTime;
 public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
     @Resource
     private RedisIdWorker redisIdWorker;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
@@ -48,9 +54,24 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return Result.fail("已经被抢完了！");
         }
         Long UserId = UserHolder.getUser().getId();
-        synchronized (UserId.toString().intern()){
+        /**
+         * 获取互斥锁，只允许一个进入
+         */
+        //1. 创建锁对象
+        SimpleRedisLock lock = new SimpleRedisLock("order:" + UserId, stringRedisTemplate);
+        //2. 获取锁 ( 设置超时时间)
+        boolean isLock = lock.tryLock(1200);
+        //2.1 获取锁不成功
+        if(!isLock){
+            return Result.fail("不允许重复下单！");
+        }
+        //2.2 获取锁成功
+        try {
             IVoucherOrderService orderService = (IVoucherOrderService) AopContext.currentProxy();
-            return createVoucherOrder(voucherId);
+            return orderService.createVoucherOrder(voucherId);
+        } finally {
+            //关闭锁
+            lock.unLock();
         }
     }
 

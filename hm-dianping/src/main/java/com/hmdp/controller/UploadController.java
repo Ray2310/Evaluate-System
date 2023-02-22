@@ -17,6 +17,11 @@ import java.util.UUID;
 @RequestMapping("upload")
 public class UploadController {
 
+    /**
+     *
+     * @param image 接收文件的地址
+     * @return
+     */
     @PostMapping("blog")
     public Result uploadImage(@RequestParam("file") MultipartFile image) {
         try {

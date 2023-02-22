@@ -34,6 +34,7 @@ public class SimpleRedisLock implements ILock {
     //todo 释放锁
     @Override
     public void unLock() {
+
         //获取线程标识
         String threadId = ID_PREFIX + Thread.currentThread().getId();
 

@@ -6,38 +6,129 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * <p>
- *  服务实现类
- * </p>
- *
- * @author 虎哥
- * @since 2021-12-22
- */
 @Service
 public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IBlogService {
     @Resource
     private IUserService userService;
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private IFollowService followService;
+
+    /**
+     * 查询当前用户的收件箱
+     * @param max 最大偏移量
+     * @param offset 与上次查询的最小的一样的元素的个数
+     * @return
+     */
+    @Override
+    public Result queryBlogOfFollow(Long max, Integer offset) {
+        //1. 获取当前用户
+        Long userId = UserHolder.getUser().getId();
+        //2. 查询收件箱(收件箱的key)
+        String key = "feeds:" + userId;
+        Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet().
+                reverseRangeByScoreWithScores(key, 0, max, offset, 3);
+
+        if (typedTuples == null || typedTuples.isEmpty()){
+            return Result.ok();
+        }
+
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        long  minTime = 0 ;
+        int count = 1;
+        //3. 解析数据（收件箱） blogId ,时间戳 ，minTime offset()
+        for(ZSetOperations.TypedTuple<String> tuple :  typedTuples){
+            //获取id
+            String idStr = tuple.getValue();
+            ids.add(Long.valueOf(idStr));
+            //获取分数（时间戳）
+            long time = tuple.getScore().longValue();
+            if(time == minTime){ //时间与最小时间一样
+                count++;
+            }else {
+                minTime = time;
+                count = 1;
+            }
+
+        }
+        //4. 根据id查询blog
+        String idStr = StrUtil.join(",",ids);
+        List<Blog> blogs =query().eq("id",ids).last("ORDER BY FIELD(id ," + idStr + ")").list();
+
+        for (Blog blog : blogs) {
+            //查询blog有关的用户
+            queryBlogUser(blog);
+            //查询blog是否被点赞
+            idBlogLiked(blog);
+        }
+        //封装并返回
+        ScrollResult result = new ScrollResult();
+        result.setList(blogs);
+        result.setOffset(count);
+        result.setMinTime(minTime);
+        return Result.ok(result);
+    }
+
+
+
+    /**
+     * 修改新增探店笔记的业务，在保存blog到数据库的同时，推送到粉丝的收件箱
+     * @param blog
+     * @return
+     */
+    @Override
+    public Result saveBlog(Blog blog) {
+        //1. 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        //2.  保存探店博文
+        boolean succ = save(blog);
+        if(!succ){
+            return Result.fail("笔记保存失败！");
+        }
+
+        //3. 查询笔记作者的所有粉丝
+        //sql语句 ： select * from tb_follow where follow_user_id = ?
+        List<Follow> follows = followService.query().eq("follow_user_id", user.getId()).list();
+        //4. 推送笔记id个所有的粉丝
+        for (Follow follow : follows) {
+            //获取每一个粉丝
+            Long userId = follow.getUserId();
+            //推送，收件箱 key粉丝的id
+            String key = "feeds:" + userId;
+            //推送笔记，按时间戳排序
+            stringRedisTemplate.opsForZSet().add(key,blog.getId().toString(),System.currentTimeMillis());
+        }
+
+        // 返回id
+        return Result.ok(blog.getId());
+    }
+
 
     /**
      * 获取页面的所有用户
@@ -85,6 +176,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         //返回
         return Result.ok(userDTOS);
     }
+
     /**
      * 实现根据博客查询用户的id
      * @param id

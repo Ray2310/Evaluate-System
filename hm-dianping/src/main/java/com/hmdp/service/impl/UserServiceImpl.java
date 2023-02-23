@@ -15,6 +15,7 @@ import com.hmdp.service.IUserService;
 import com.hmdp.utils.RegexUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.HttpRequest;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -71,6 +72,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         return Result.ok();
     }
 
+
+    /**
+     * 将用户设置为全局变量，便于删除
+     */
+    String token ;
     @Override
     public Result login(LoginFormDTO loginForm, HttpSession session) {
         // TODO 实现登录功能
@@ -87,6 +93,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //3. 调用数据库查询用户是否存在
         User user = query().eq("phone", phone).one();
 
+        token = getNowUser();
         //4. **存在的话** : 保存用户信息到session，**不存在** : 就跳转到注册页面 ，注册并保存到数据库
         if(user == null){
             user = createUserWithPhone( phone);
@@ -99,7 +106,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
          * 4. 存储
          * 5. 返回token
          */
-        String token = UUID.randomUUID().toString(true);
+
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         Map<String, Object> map = BeanUtil.beanToMap(userDTO,new HashMap<>(),
             CopyOptions.create().setIgnoreNullValue(true).
@@ -113,6 +120,26 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
          * 那么就重置30分钟，一直往复的设值，那么就实现了用户30分钟不点点击就删除token的设置
          */
         return Result.ok(token);
+    }
+
+    /**
+     * 注销功能！
+     * @return
+     * @param session
+     */
+    @Override
+    public Result logout(HttpSession session) {
+        Boolean delete = stringRedisTemplate.delete(LOGIN_USER_KEY + token);
+        session.invalidate();
+        return Result.ok(delete);
+    }
+
+    /**
+     * 获取当前登录的用户
+     * @return
+     */
+    public String getNowUser(){
+        return UUID.randomUUID().toString(true);
     }
 
     private User createUserWithPhone(String phone) {

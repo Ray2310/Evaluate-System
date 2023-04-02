@@ -1,4 +1,4 @@
-# 项目介绍
+# 点评项目介绍
 ## 项目架构
 **后端框架 :** springBoot 、SpringMVC 、Mybatis-Plus 、 MySQL 、Redis
 

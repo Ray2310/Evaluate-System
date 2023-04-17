@@ -19,36 +19,41 @@
 # 项目部署 和 配置
 1. 数据库配置
 
-![img.png](img.png)
+![image](https://user-images.githubusercontent.com/109897266/232434595-4547b04a-26d3-40f4-9cc3-862975efc921.png)
 
 2. redis配置
 
-![img_1.png](img_1.png)
+![image](https://user-images.githubusercontent.com/109897266/232434656-48ca8c8a-d02f-4a64-bbf6-f7622a51f206.png)
+
 
 3. 项目启动
 
-![img_2.png](img_2.png)
+![image](https://user-images.githubusercontent.com/109897266/232434730-a523cbbe-59d4-4570-8369-7b0f5a5fe51b.png)
+
 
 # 项目部分实现展示
 1. 项目首页
 
-![img_3.png](img_3.png)
+![image](https://user-images.githubusercontent.com/109897266/232435700-1083c027-f195-4562-b8ab-6a0b03b17fa7.png)
 
 2. 登录页
 
-![img_4.png](img_4.png)
+![image](https://user-images.githubusercontent.com/109897266/232435900-745078b7-85e7-4e8b-9f17-28b82ad2aeae.png)
+
 
 3. 达人探店
 
-![img_5.png](img_5.png)
+![image](https://user-images.githubusercontent.com/109897266/232435951-6254187d-bcc2-48db-9cdd-1dad001adc88.png)
+
 
 4. 发布文章
 
-![img_6.png](img_6.png) 
+![image](https://user-images.githubusercontent.com/109897266/232436003-51ebddda-faaf-4009-9aa9-47982a400f8d.png)
+
 
 5. 查看所有店铺
 
-![img_7.png](img_7.png)     
+![image](https://user-images.githubusercontent.com/109897266/232436045-030c8db1-f667-4411-8bc3-bb378b880128.png)   
 
 
 # 后续可优化部分
